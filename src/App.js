@@ -33,7 +33,6 @@ function App() {
   const [finalAnswer, setFinalAnswer] = useState('');
 
   const GROQ_API_KEY = process.env.REACT_APP_GROQ_API_KEY;
-  const GEMINI_API_KEY = process.env.REACT_APP_GEMINI_API_KEY;
   
   const callGroq = async (prompt, systemPrompt) => {
     try {
@@ -56,29 +55,8 @@ function App() {
       const data = await response.json();
       return data.choices[0].message.content;
     } catch (error) {
+      console.error('Groq API Error:', error);
       return "ERROR: My circuits are fried thinking about this! 🤯";
-    }
-  };
-
-  const callGemini = async (prompt, systemPrompt) => {
-    try {
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{
-            parts: [{ text: `${systemPrompt}\n\nUser question: ${prompt}\n\nRespond in character, under 3 sentences:` }]
-          }],
-          generationConfig: {
-            temperature: 1.3,
-            maxOutputTokens: 150
-          }
-        })
-      });
-      const data = await response.json();
-      return data.candidates[0].content.parts[0].text;
-    } catch (error) {
-      return "SYSTEM MALFUNCTION: Too much thinking! 💥";
     }
   };
 
@@ -115,31 +93,29 @@ function App() {
 
     const confInterval = animateConfidence();
 
-    // Round 1: Initial reactions
+    // Round 1: Initial reactions - ALL USE GROQ
     for (let i = 0; i < 3; i++) {
       const agent = AGENT_CONFIGS[i];
-      const apiCall = i === 0 ? callGroq : (i === 1 ? callGemini : callGroq);
-      const response = await apiCall(
+      const response = await callGroq(
         `Someone is asking: "${question}". Give your immediate overthinking reaction.`,
         agent.systemPrompt
       );
       await addMessage(agent, response, 1000);
     }
 
-    // Round 2: They respond to each other
+    // Round 2: They respond to each other - ALL USE GROQ
     await new Promise(r => setTimeout(r, 1500));
     
     for (let i = 0; i < 3; i++) {
       const agent = AGENT_CONFIGS[i];
-      const apiCall = i === 1 ? callGemini : callGroq;
-      const response = await apiCall(
+      const response = await callGroq(
         `The question was: "${question}". Other AIs are debating this. Add your overthinking commentary that makes it worse.`,
         agent.systemPrompt
       );
       await addMessage(agent, response, 1200);
     }
 
-    // Round 3: Final spiral
+    // Round 3: Final spiral - ALL USE GROQ
     await new Promise(r => setTimeout(r, 1500));
     
     const finalAgent = AGENT_CONFIGS[Math.floor(Math.random() * 3)];
