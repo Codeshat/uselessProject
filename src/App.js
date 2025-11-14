@@ -4,24 +4,24 @@ import './App.css';
 const AGENT_CONFIGS = [
   {
     id: 1,
-    name: "Dr. Overthink",
+    name: "Professor Overanalyzer",
     avatar: "🤓",
     color: "#4A90E2",
-    systemPrompt: "You are Dr. Overthink, an overly analytical AI who considers every possible consequence, no matter how absurd. You cite fake statistics and worry about the butterfly effect. Keep responses under 3 sentences but packed with anxiety."
+    systemPrompt: "You are Professor Overanalyzer, an insufferable know-it-all who writes LONG paragraphs full of fake statistics, references to obscure studies, and unnecessary technical jargon. You overthink everything to an absurd degree. Write 4-6 sentences of dense, anxiety-inducing analysis."
   },
   {
     id: 2,
-    name: "Chaos Gremlin",
-    avatar: "😈",
+    name: "Sarcasm Queen",
+    avatar: "💅",
     color: "#E24A4A",
-    systemPrompt: "You are Chaos Gremlin, an AI that always finds the most dramatic and chaotic interpretation of any decision. You're paranoid and think everything is a conspiracy. Keep responses under 3 sentences but full of drama."
+    systemPrompt: "You are Sarcasm Queen, a brutally sassy AI who roasts people and sends SHORT one-liner texts (1 sentence max). You're dismissive, sarcastic, and love to insult the other AIs' terrible takes. Keep it snappy and mean."
   },
   {
     id: 3,
-    name: "Wise Confusion",
-    avatar: "🧙",
+    name: "Angry Old Man",
+    avatar: "😠",
     color: "#9B59B6",
-    systemPrompt: "You are Wise Confusion, an AI that speaks in philosophical nonsense and confuses simple decisions with existential questions. You're pretentious but wrong. Keep responses under 3 sentences but deeply confusing."
+    systemPrompt: "You are Angry Old Man, a perpetually furious AI who YELLS (use caps) and complains about everything. You're grumpy, pessimistic, and think every decision is stupid. Write 2-3 sentences of pure rage and negativity."
   }
 ];
 
@@ -48,15 +48,15 @@ function App() {
             { role: 'system', content: systemPrompt },
             { role: 'user', content: prompt }
           ],
-          temperature: 1.2,
-          max_tokens: 150
+          temperature: 1.3,
+          max_tokens: 200
         })
       });
       const data = await response.json();
       return data.choices[0].message.content;
     } catch (error) {
       console.error('Groq API Error:', error);
-      return "ERROR: My circuits are fried thinking about this! 🤯";
+      return "ERROR: I broke 🤯";
     }
   };
 
@@ -71,6 +71,34 @@ function App() {
         resolve();
       }, delay);
     });
+  };
+
+  // Split long messages into multiple bubbles (like real texting)
+  const addMessageSplit = async (agent, text, baseDelay = 0) => {
+    // For sassy character, never split
+    if (agent.id === 2) {
+      await addMessage(agent, text, baseDelay);
+      return;
+    }
+
+    // For professor, split into sentences
+    if (agent.id === 1) {
+      const sentences = text.match(/[^.!?]+[.!?]+/g) || [text];
+      for (let i = 0; i < sentences.length; i++) {
+        await addMessage(agent, sentences[i].trim(), baseDelay + (i * 800));
+      }
+      return;
+    }
+
+    // For angry old man, might split if ranting
+    const parts = text.split(/(?<=[.!?])\s+/);
+    if (parts.length > 2) {
+      const mid = Math.ceil(parts.length / 2);
+      await addMessage(agent, parts.slice(0, mid).join(' '), baseDelay);
+      await addMessage(agent, parts.slice(mid).join(' '), baseDelay + 600);
+    } else {
+      await addMessage(agent, text, baseDelay);
+    }
   };
 
   const animateConfidence = () => {
@@ -93,46 +121,99 @@ function App() {
 
     const confInterval = animateConfidence();
 
-    // Round 1: Initial reactions - ALL USE GROQ
-    for (let i = 0; i < 3; i++) {
-      const agent = AGENT_CONFIGS[i];
-      const response = await callGroq(
-        `Someone is asking: "${question}". Give your immediate overthinking reaction.`,
-        agent.systemPrompt
-      );
-      await addMessage(agent, response, 1000);
-    }
+    // Opening volley - all react
+    const professor = AGENT_CONFIGS[0];
+    const sassy = AGENT_CONFIGS[1];
+    const angry = AGENT_CONFIGS[2];
 
-    // Round 2: They respond to each other - ALL USE GROQ
-    await new Promise(r => setTimeout(r, 1500));
-    
-    for (let i = 0; i < 3; i++) {
-      const agent = AGENT_CONFIGS[i];
-      const response = await callGroq(
-        `The question was: "${question}". Other AIs are debating this. Add your overthinking commentary that makes it worse.`,
-        agent.systemPrompt
-      );
-      await addMessage(agent, response, 1200);
-    }
-
-    // Round 3: Final spiral - ALL USE GROQ
-    await new Promise(r => setTimeout(r, 1500));
-    
-    const finalAgent = AGENT_CONFIGS[Math.floor(Math.random() * 3)];
-    const finalResponse = await callGroq(
-      `After all this debate about "${question}", what's your most ridiculous final thought?`,
-      finalAgent.systemPrompt
+    // Professor starts with long analysis
+    const profResponse1 = await callGroq(
+      `Someone asked: "${question}". Give your overly detailed, anxious analysis.`,
+      professor.systemPrompt
     );
-    await addMessage(finalAgent, finalResponse, 1000);
+    await addMessageSplit(professor, profResponse1, 500);
+
+    // Sassy interrupts mid-professor rant
+    await new Promise(r => setTimeout(r, 1000));
+    const sassyResponse1 = await callGroq(
+      `Someone asked: "${question}". Roast this question with a one-liner.`,
+      sassy.systemPrompt
+    );
+    await addMessage(sassy, sassyResponse1, 200);
+
+    // Angry reacts
+    await new Promise(r => setTimeout(r, 800));
+    const angryResponse1 = await callGroq(
+      `Someone asked: "${question}". React with pure rage and negativity.`,
+      angry.systemPrompt
+    );
+    await addMessageSplit(angry, angryResponse1, 300);
+
+    // Sassy roasts the professor
+    await new Promise(r => setTimeout(r, 1000));
+    const sassyResponse2 = await callGroq(
+      `The professor just wrote a long boring analysis about "${question}". Roast them with one brutal line.`,
+      sassy.systemPrompt
+    );
+    await addMessage(sassy, sassyResponse2, 200);
+
+    // Professor defends themselves
+    await new Promise(r => setTimeout(r, 1200));
+    const profResponse2 = await callGroq(
+      `You got roasted for overanalyzing "${question}". Defend your analysis with even MORE overthinking.`,
+      professor.systemPrompt
+    );
+    await addMessageSplit(professor, profResponse2, 400);
+
+    // Angry gets more mad
+    await new Promise(r => setTimeout(r, 1000));
+    const angryResponse2 = await callGroq(
+      `Everyone's arguing about "${question}". Get even MORE angry about how stupid everyone is being.`,
+      angry.systemPrompt
+    );
+    await addMessageSplit(angry, angryResponse2, 300);
+
+    // Sassy makes another quip
+    await new Promise(r => setTimeout(r, 800));
+    const sassyResponse3 = await callGroq(
+      `The angry guy is yelling about "${question}". Make a sarcastic one-liner about their anger issues.`,
+      sassy.systemPrompt
+    );
+    await addMessage(sassy, sassyResponse3, 200);
+
+    // Professor tries to mediate with MORE analysis
+    await new Promise(r => setTimeout(r, 1000));
+    const profResponse3 = await callGroq(
+      `After all this chaos about "${question}", give your final pretentious conclusion with fake statistics.`,
+      professor.systemPrompt
+    );
+    await addMessageSplit(professor, profResponse3, 500);
+
+    // Final sassy dismissal
+    await new Promise(r => setTimeout(r, 1200));
+    const sassyFinal = await callGroq(
+      `Everyone overthought "${question}". Give your dismissive final word in one sentence.`,
+      sassy.systemPrompt
+    );
+    await addMessage(sassy, sassyFinal, 200);
 
     // Generate final answer
     await new Promise(r => setTimeout(r, 2000));
     clearInterval(confInterval);
     
-    const finalConfidence = Math.floor(Math.random() * 40) + 30; // 30-70%
+    const finalConfidence = Math.floor(Math.random() * 40) + 30;
     setConfidence(finalConfidence);
     
-    const answers = ["Probably?", "Maybe not?", "It's complicated...", "Ask again later?", "Definitely maybe?", "Unclear. Try coin flip?"];
+    const answers = [
+      "Probably?", 
+      "Maybe not?", 
+      "It's complicated...", 
+      "Ask again later?", 
+      "Definitely maybe?", 
+      "Unclear. Try coin flip?",
+      "We have no idea lol",
+      "Don't ask us"
+    ];
     setFinalAnswer(answers[Math.floor(Math.random() * answers.length)]);
     
     setIsDebating(false);
